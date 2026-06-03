@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block title %}Мои билеты — Кинотеатр{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Делаем оригинальный QR-код кликабельным визуально */
+    .ticket-qr {
+        cursor: zoom-in;
+        transition: transform 0.2s ease;
+    }
+    .ticket-qr:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+    }
+
+    /* === СТИЛИ МОДАЛЬНОГО ОКНА ДЛЯ QR-КОДА === */
+    .qr-modal-overlay {
+        display: none; /* Скрыто по умолчанию */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9); /* Очень тёмный фон для контраста при сканировании */
+        z-index: 1000; /* Поверх всего, даже шапки */
+        align-items: center;
+        justify-content: center;
+        cursor: pointer; /* Клик вне картинки закроет окно */
+        backdrop-filter: blur(5px);
+    }
+    .qr-modal-content {
+        position: relative;
+        max-width: 500vw;
+        max-height: 500vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .qr-modal-content img {
+        max-width: 100%;
+        max-height: 200vh;
+        width: auto;
+        height: auto;
+        border-radius: 12px;
+        background: #ffffff; /* Белый фон под QR для идеального сканирования */
+        padding: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+    .qr-modal-close {
+        position: absolute;
+        top: -50px;
+        right: 0;
+        background: none;
+        border: none;
+        color: #ffffff;
+        font-size: 3rem;
+        font-weight: 300;
+        cursor: pointer;
+        line-height: 1;
+        transition: color 0.2s;
+    }
+    .qr-modal-close:hover {
+        color: #aaaaaa;
+    }
+    .tickets-wrapper {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+    .tickets-header {
+        margin-bottom: 30px;
+    }
+    .tickets-title {
+        font-size: 2rem;
+        color: #fff;
+        margin: 0 0 8px 0;
+    }
+    .tickets-subtitle {
+        color: #888;
+        font-size: 1rem;
+    }
+    
+    .tickets-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 24px;
+    }
+    .ticket-card {
+        background: #111;
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,0.08);
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .ticket-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .ticket-header {
+        background: linear-gradient(135deg, #1a1a1a, #222);
+        padding: 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .ticket-movie-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #fff;
+        margin: 0 0 8px 0;
+    }
+    .ticket-date-time {
+        font-size: 0.95rem;
+        color: #aaa;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .ticket-body {
+        padding: 20px;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+    }
+    .ticket-qr {
+        width: 120px;
+        height: 120px;
+        background: #fff;
+        border-radius: 12px;
+        padding: 8px;
+        flex-shrink: 0;
+    }
+    .ticket-qr img {
+        width: 100%;
+        height: 100%;
+    }
+    .ticket-details {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .ticket-detail-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.95rem;
+    }
+    .ticket-detail-label {
+        color: #888;
+    }
+    .ticket-detail-value {
+        color: #fff;
+        font-weight: 500;
+    }
+    .ticket-status {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .status-booked {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4caf50;
+    }
+    .status-used {
+        background: rgba(255, 152, 0, 0.2);
+        color: #ff9800;
+    }
+    
+    .no-tickets {
+        text-align: center;
+        padding: 80px 20px;
+        color: #666;
+        background: #111;
+        border-radius: 16px;
+        border: 2px dashed rgba(255,255,255,0.1);
+    }
+    .no-tickets h3 {
+        color: #fff;
+        font-size: 1.5rem;
+        margin-bottom: 12px;
+    }
+    .no-tickets p {
+        font-size: 1.1rem;
+        margin-bottom: 24px;
+    }
+    .no-tickets a {
+        display: inline-block;
+        padding: 12px 32px;
+        background: #fff;
+        color: #000;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: background 0.2s;
+    }
+    .no-tickets a:hover {
+        background: #e0e0e0;
+    }
+    
+    .not-logged {
+        text-align: center;
+        color: #666;
+        font-size: 1.2rem;
+        margin-top: 80px;
+    }
+    
+    @media (max-width: 768px) {
+        .ticket-body {
+            flex-direction: column;
+            text-align: center;
+        }
+        .ticket-details {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tickets-wrapper">
+    {% if user %}
+    <div class="tickets-header">
+        <h1 class="tickets-title">Мои билеты</h1>
+        <p class="tickets-subtitle">Всего куплено: {{ tickets|length }}</p>
+    </div>
+    
+    {% if tickets %}
+    <div class="tickets-grid">
+        {% for ticket in tickets %}
+        <div class="ticket-card">
+            <div class="ticket-header">
+                <h3 class="ticket-movie-title">{{ ticket.session.movie.title }}</h3>
+                <div class="ticket-date-time">
+                    📅 {{ ticket.session.session_date.strftime('%d.%m.%Y') }} в {{ ticket.session.start_time.strftime('%H:%M') }}
+                </div>
+            </div>
+            <div class="ticket-body">
+                <div class="ticket-qr">
+                    <img src="{{ url_for('static', filename='qr_codes/' + ticket.ticket_code + '.png') }}" 
+                         alt="QR-код билета" 
+                         title="Нажмите, чтобы увеличить"
+                         onclick="openQrModal(this.src)">
+                </div>
+                <div class="ticket-details">
+                    <div class="ticket-detail-row">
+                        <span class="ticket-detail-label">Зал:</span>
+                        <span class="ticket-detail-value">{{ ticket.session.hall.hall_name }}</span>
+                    </div>
+                    <div class="ticket-detail-row">
+                        <span class="ticket-detail-label">Место:</span>
+                        <span class="ticket-detail-value">№{{ ticket.seat.seat_number }}</span>
+                    </div>
+                    <div class="ticket-detail-row">
+                        <span class="ticket-detail-label">Цена:</span>
+                        <span class="ticket-detail-value">{{ ticket.session.price }} ₽</span>
+                    </div>
+                    <div class="ticket-detail-row">
+                        <span class="ticket-detail-label">Статус:</span>
+                        <span class="ticket-status status-{{ ticket.status }}">
+                            {% if ticket.status == 'booked' %}Действителен
+                            {% elif ticket.status == 'used' %}Использован
+                            {% else %}{{ ticket.status }}{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="no-tickets">
+        <h3>У вас пока нет билетов</h3>
+        <p>Выберите фильм и забронируйте место на удобный сеанс</p>
+        <a href="{{ url_for('movies.catalog') }}">Перейти к каталогу фильмов</a>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <p class="not-logged">Вы ещё не вошли в аккаунт.<br>Используйте кнопки «Вход» или «Регистрация» в шапке сайта.</p>
+    {% endif %}
+</div>
+<div id="qrModal" class="qr-modal-overlay" onclick="closeQrModal()">
+        <div class="qr-modal-content" onclick="event.stopPropagation()">
+            <button class="qr-modal-close" onclick="closeQrModal()" title="Закрыть">×</button>
+            <img id="qrModalImage" src="" alt="Увеличенный QR-код">
+        </div>
+    </div>
+<script>
+        function openQrModal(imageSrc) {
+            const modal = document.getElementById('qrModal');
+            const modalImg = document.getElementById('qrModalImage');
+            modalImg.src = imageSrc;
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeQrModal() {
+            const modal = document.getElementById('qrModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeQrModal();
+            }
+        });
+    </script>
+{% endblock %}

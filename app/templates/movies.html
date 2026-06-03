@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Фильмы — Кинотеатр{% endblock %}
+
+{% block extra_css %}
+<style>
+    .content-wrapper {
+        display: flex;
+        gap: 24px;
+        padding: 30px 40px;
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
+        align-items: flex-start;
+    }
+    .filter-container { position: relative; flex-shrink: 0; margin-top: 6px; }
+    .filter-trigger {
+        background: transparent; color: #fff; border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 10px 18px; border-radius: 8px; cursor: pointer; font-size: 14px;
+        font-weight: 500; transition: 0.2s; letter-spacing: 0.3px;
+    }
+    .filter-trigger:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.3); }
+    .filter-menu {
+        display: none; position: absolute; top: 95%; left: 0; background: #0f0f0f;
+        border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 6px 0;
+        min-width: 210px; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    }
+    .filter-container:hover .filter-menu { display: block; }
+    .filter-link {
+        display: block; padding: 10px 16px; color: #aaa; text-decoration: none;
+        font-size: 14px; transition: 0.15s; cursor: pointer;
+    }
+    .filter-link:hover, .filter-link.active { background: rgba(255, 255, 255, 0.08); color: #fff; }
+    .filter-link.active { border-left: 3px solid #fff; }
+    
+    .movies-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px; width: 100%; }
+    .movie-card {
+        background: rgba(20, 20, 20, 0.8); border-radius: 12px; overflow: hidden;
+        transition: transform 0.2s ease; border: 1px solid rgba(255, 255, 255, 0.05); cursor: pointer;
+    }
+    .movie-card:hover { transform: translateY(-4px); }
+    .poster { width: 100%; aspect-ratio: 2/3; background: #111; display: flex; align-items: center; justify-content: center; color: #555; font-size: 14px; }
+    .poster img { width: 100%; height: 100%; object-fit: cover; }
+    .movie-info { padding: 16px; }
+    .movie-title { font-size: 1.1rem; font-weight: 500; margin-bottom: 8px; color: #fff; }
+    .movie-meta { font-size: 0.9rem; color: #888; line-height: 1.4; }
+    .age-badge { display: inline-block; padding: 2px 8px; background: rgba(255, 255, 255, 0.1); border-radius: 4px; font-size: 0.8rem; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+        .content-wrapper { flex-direction: column; padding: 20px; }
+        .filter-menu { left: 0; right: 0; min-width: auto; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <aside class="filter-container">
+        <button class="filter-trigger">🎭 Фильтр по жанру</button>
+        <div class="filter-menu">
+            <a href="{{ url_for('movies.catalog') }}" class="filter-link {% if not selected_genre %}active{% endif %}">Без фильтра</a>
+            {% for g in genres %}
+            <a href="{{ url_for('movies.catalog', genre=g) }}" class="filter-link {% if selected_genre == g %}active{% endif %}">{{ g }}</a>
+            {% endfor %}
+        </div>
+    </aside>
+    <main class="movies-grid">
+        {% for movie in movies %}
+        <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" style="text-decoration: none; color: inherit; display: contents;">
+            <article class="movie-card">
+                <div class="poster">
+                    {% if movie.poster_path %}
+                        <img src="{{ url_for('static', filename=movie.poster_path) }}" alt="{{ movie.title }}">
+                    {% else %}
+                        <span>Нет постера</span>
+                    {% endif %}
+                </div>
+                <div class="movie-info">
+                    <h3 class="movie-title">{{ movie.title }}</h3>
+                    <div class="movie-meta">
+                        <span class="age-badge">{{ movie.age_rating }}</span>
+                        <span>{{ movie.genre }}</span><br>
+                        <small>Режиссёр: {{ movie.director }}</small>
+                    </div>
+                </div>
+            </article>
+        </a>
+        {% else %}
+        <p style="grid-column: 1/-1; text-align: center; color: #666; margin-top: 40px;">
+            {% if selected_genre %}Фильмов в жанре "{{ selected_genre }}" не найдено.{% else %}Фильмы пока не добавлены в базу.{% endif %}
+        </p>
+        {% endfor %}
+    </main>
+</div>
+{% endblock %}

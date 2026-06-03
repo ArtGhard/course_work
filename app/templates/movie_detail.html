@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}{{ movie.title }} — Кинотеатр{% endblock %}
+
+{% block extra_css %}
+
+<style>
+    .detail-container {
+        display: flex;
+        gap: 40px;
+        max-width: 1200px;
+        width: 100%;
+        margin: 50px auto;
+        padding: 0 20px;
+        align-items: flex-start;
+    }
+    .detail-left { flex: 0 0 300px; }
+    .poster-large { width: 100%; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.6); object-fit: cover; }
+    .meta-row { display: flex; flex-direction: column; gap: 16px; margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .meta-item { display: flex; flex-direction: column; gap: 4px; }
+    .meta-label { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: 1.5px; }
+    .meta-value { font-size: 1rem; color: #fff; font-weight: 500; }
+    .detail-right { flex: 1; padding-top: 10px; }
+    .movie-title-detail { font-size: clamp(2rem, 4vw, 3rem); font-weight: 600; color: #ffffff; margin-bottom: 24px; line-height: 1.2; }
+    .movie-desc { font-size: 1.1rem; line-height: 1.8; color: #b0b0b0; max-width: 90%; }
+
+    @media (max-width: 768px) {
+        .detail-container { flex-direction: column; align-items: center; }
+        .detail-left { width: 100%; max-width: 300px; }
+        .movie-desc { max-width: 100%; }
+    }
+    .sessions-section {
+        margin-top: 40px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .section-title {
+        font-size: 1.5rem;
+        color: #fff;
+        margin-bottom: 20px;
+        font-weight: 600;
+        text-align: center;
+    }
+    .sessions-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .session-card {
+        background: #ffffff;
+        color: #000000;
+        border-radius: 12px;
+        padding: 16px 20px;
+        min-width: 140px;
+        text-align: center;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 12px rgba(255,255,255,0.05);
+    }
+    .session-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(255,255,255,0.15);
+    }
+    .session-date { font-size: 0.85rem; color: #555; margin-bottom: 4px; }
+    .session-time { font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; }
+    .session-hall { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; }
+    .session-price { font-size: 1.1rem; font-weight: 700; color: #000; }
+    .no-sessions { color: #666; font-style: italic; }
+
+    .seat-modal-content {
+        background: #111;
+        padding: 30px;
+        border-radius: 16px;
+        width: 200%;
+        max-width: 600px;
+        position: relative;
+        border: 1px solid rgba(255,255,255,0.1);
+        text-align: center;
+    }
+    .screen-indicator {
+        width: 60%;
+        height: 4px;
+        background: rgba(255,255,255,0.3);
+        margin: 0 auto 30px auto;
+        border-radius: 2px;
+        box-shadow: 0 10px 20px rgba(255,255,255,0.1);
+        position: relative;
+    }
+    .seats-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 30px;
+        min-height: 60px;
+    }
+    .seat {
+        width: 40px;
+        height: 40px;
+        background: #333;
+        border-radius: 8px 8px 4px 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #888;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+    }
+    .seat:hover:not(.booked) {
+        background: #555;
+        color: #fff;
+        transform: scale(1.1);
+    }
+    .seat.selected {
+        background: #ffffff;
+        color: #000000;
+        font-weight: bold;
+        border-color: #fff;
+        box-shadow: 0 0 12px rgba(255,255,255,0.4);
+    }
+    .seat.booked {
+        background: #222;
+        color: #444;
+        cursor: not-allowed;
+        text-decoration: line-through;
+    }
+    .booking-summary {
+        background: rgba(255,255,255,0.05);
+        padding: 16px;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .book-btn {
+        background: #fff;
+        color: #000;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .book-btn:hover { background: #e0e0e0; }
+    .book-btn:disabled { background: #444; color: #888; cursor: not-allowed; }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="sessions-section">
+        <h2 class="section-title">Расписание сеансов</h2>
+        {% if sessions %}
+        <div class="sessions-grid">
+            {% for s in sessions %}
+            <div class="session-card" data-session-id="{{ s.id }}">
+                <div class="session-date">{{ s.session_date.strftime('%d.%m.%Y') }}</div>
+                <div class="session-time">{{ s.start_time.strftime('%H:%M') }}</div>
+                <div class="session-hall">Зал {{ s.hall.hall_name }}</div>
+                <div class="session-price">{{ s.price }} ₽</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="no-sessions">На этот фильм пока нет запланированных сеансов.</p>
+        {% endif %}
+    </div>
+
+    <div id="seatModal" class="modal-overlay">
+        <div class="seat-modal-content">
+            <button class="modal-close" onclick="closeSeatModal()">×</button>
+            <h3 id="modalSessionInfo">Выбор места</h3>
+            <div class="seats-container" id="seatsContainer">
+                <div class="loading-seats">Загрузка схемы зала...</div>
+            </div>
+
+            <div class="booking-summary" id="bookingSummary" style="display: none;">
+                <div class="summary-text">
+                    Выбрано место: <span id="selectedSeatNumber" style="color: #fff; font-weight: bold;">-</span>
+                </div>
+                <button class="book-btn" onclick="confirmBooking()">Оформить билет</button>
+            </div>
+        </div>
+    </div>
+<main class="detail-container">
+    <div class="detail-left">
+        {% if movie.poster_path %}
+            <img src="{{ url_for('static', filename=movie.poster_path) }}" alt="{{ movie.title }}" class="poster-large">
+        {% else %}
+            <div class="poster-large" style="background:#1a1a1a; height:450px; display:flex; align-items:center; justify-content:center; color:#444;">Нет постера</div>
+        {% endif %}
+        <div class="meta-row">
+            <div class="meta-item"><span class="meta-label">Режиссёр</span><span class="meta-value">{{ movie.director }}</span></div>
+            <div class="meta-item"><span class="meta-label">Возрастное ограничение</span><span class="meta-value">{{ movie.age_rating }}</span></div>
+            <div class="meta-item"><span class="meta-label">Жанр</span><span class="meta-value">{{ movie.genre }}</span></div>
+        </div>
+    </div>
+    <div class="detail-right">
+        <h1 class="movie-title-detail">{{ movie.title }}</h1>
+        <p class="movie-desc">{{ movie.description }}</p>
+    </div>
+</main>
+<script>
+    let currentSessionId = null;
+    let currentSeatId = null;
+    let currentPrice = 0;
+
+    function openSeatModal(sessionId) {
+        currentSessionId = sessionId;
+        currentSeatId = null;
+        document.getElementById('seatModal').style.display = 'flex';
+        document.getElementById('bookingSummary').style.display = 'none';
+        document.getElementById('seatsContainer').innerHTML = '<div class="loading-seats">Загрузка...</div>';
+
+        fetch(`/api/sessions/${sessionId}/seats`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('modalSessionInfo').innerText = `Зал ${data.hall_name} | ${data.date} в ${data.time}`;
+                currentPrice = data.price;
+                
+                const container = document.getElementById('seatsContainer');
+                container.innerHTML = '';
+
+                data.seats.forEach(seat => {
+                    const seatDiv = document.createElement('div');
+                    seatDiv.className = `seat ${seat.is_booked ? 'booked' : ''}`;
+                    seatDiv.innerText = seat.number;
+                    
+                    if (!seat.is_booked) {
+                        seatDiv.onclick = () => selectSeat(seat.id, seat.number, seatDiv);
+                    }
+                    container.appendChild(seatDiv);
+                });
+            })
+            .catch(err => {
+                document.getElementById('seatsContainer').innerHTML = 'Ошибка загрузки мест';
+                console.error(err);
+            });
+    }
+
+    function selectSeat(seatId, seatNumber, element) {
+        document.querySelectorAll('.seat.selected').forEach(el => el.classList.remove('selected'));
+        
+        // Выделяем новое
+        element.classList.add('selected');
+        currentSeatId = seatId;
+        
+        document.getElementById('selectedSeatNumber').innerText = `Место ${seatNumber} (${currentPrice} ₽)`;
+        document.getElementById('bookingSummary').style.display = 'flex';
+    }
+
+    function closeSeatModal() {
+        document.getElementById('seatModal').style.display = 'none';
+    }
+
+    function confirmBooking() {
+        if (!currentSeatId || !currentSessionId) return;
+
+        const btn = document.querySelector('.book-btn');
+        btn.innerText = 'Оформление...';
+        btn.disabled = true;
+
+        fetch('/api/book_ticket', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                session_id: currentSessionId,
+                seat_id: currentSeatId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Билет успешно оформлен! Он появился в вашем Личном кабинете.');
+                closeSeatModal();
+                window.location.href = "{{ url_for('auth.profile') }}";
+            } else {
+                alert('Ошибка: ' + data.error);
+                btn.innerText = 'Оформить билет';
+                btn.disabled = false;
+            }
+        })
+        .catch(err => {
+            alert('Произошла ошибка сети');
+            btn.innerText = 'Оформить билет';
+            btn.disabled = false;
+        });
+    }
+
+    document.getElementById('seatModal').addEventListener('click', function(e) {
+        if (e.target === this) closeSeatModal();
+    });
+    document.addEventListener('DOMContentLoaded', function() {
+        const sessionCards = document.querySelectorAll('.session-card');
+        
+        sessionCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const sessionId = this.getAttribute('data-session-id');
+                openSeatModal(sessionId);
+            });
+        });
+    });
+</script>
+{% endblock %}

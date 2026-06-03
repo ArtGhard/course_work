@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Личный кабинет — Кинотеатр{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-container { max-width: 600px; margin: 60px auto; padding: 30px; background: #111; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); }
+    .profile-title { font-size: 1.5rem; margin-bottom: 20px; color: #fff; }
+    .profile-info { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+    .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .info-label { color: #888; }
+    .info-value { color: #fff; font-weight: 500; }
+    .logout-btn { display: inline-block; padding: 10px 20px; background: transparent; border: 1px solid #444; color: #fff; text-decoration: none; border-radius: 6px; cursor: pointer; }
+    .logout-btn:hover { background: rgba(255,255,255,0.08); }
+    .not-logged { text-align: center; color: #666; font-size: 1.1rem; margin-top: 40px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<main style="flex:1; display:flex; align-items:center; justify-content:center;">
+    {% if user %}
+    <div class="profile-container">
+        <h2 class="profile-title">Профиль пользователя</h2>
+        <div class="profile-info">
+            <div class="info-row"><span class="info-label">Имя:</span><span class="info-value">{{ user.first_name }}</span></div>
+            <div class="info-row"><span class="info-label">Фамилия:</span><span class="info-value">{{ user.last_name }}</span></div>
+            <div class="info-row"><span class="info-label">Отчество:</span><span class="info-value">{{ user.patronymic or 'Не указано' }}</span></div>
+            <div class="info-row"><span class="info-label">Email:</span><span class="info-value">{{ user.email }}</span></div>
+            <div class="info-row"><span class="info-label">Дата регистрации:</span><span class="info-value">{{ user.created_at.strftime('%d.%m.%Y') }}</span></div>
+        </div>
+        <a href="{{ url_for('auth.logout') }}" class="logout-btn">Выйти из аккаунта</a>
+    </div>
+    {% else %}
+    <p class="not-logged">Вы ещё не вошли в аккаунт.<br>Используйте кнопки «Вход» или «Регистрация».</p>
+    {% endif %}
+</main>
+{% endblock %}

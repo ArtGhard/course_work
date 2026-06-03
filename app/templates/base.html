@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport">
+    <title>{% block title %}Кинотеатр{% endblock %}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #050505;
+            color: #e0e0e0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            height: 70px;
+            background: rgba(8, 8, 8, 0.95);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+        .nav-group { display: flex; align-items: center; gap: 28px; }
+        .nav-btn {
+            text-decoration: none;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 400;
+            padding: 8px 14px;
+            background: transparent;
+            border-radius: 6px;
+            transition: all 0.25s ease;
+            cursor: pointer;
+            letter-spacing: 0.3px;
+        }
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
+        }
+        .cinematitle {
+            position: absolute;   
+            left: 50%;               
+            transform: translateX(-50%); 
+            text-align: center;
+            pointer-events: auto;
+            z-index: 10;            
+        }
+        .cinematitle h1 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin: 0;
+            white-space: nowrap;
+        }
+        @media (max-width: 768px) {
+            .header { flex-direction: column; height: auto; padding: 16px 20px; gap: 14px; }
+            .nav-group { gap: 12px; flex-wrap: wrap; justify-content: center; }
+        }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 200; align-items: center; justify-content: center; }
+        .modal { background: #111; padding: 24px; border-radius: 12px; width: 320px; position: relative; border: 1px solid rgba(255,255,255,0.1); }
+        .modal h2 { color: #fff; margin-bottom: 16px; text-align: center; }
+        .modal-close { position: absolute; top: 10px; right: 14px; background: none; border: none; color: #666; font-size: 20px; cursor: pointer; }
+        .modal-form { display: flex; flex-direction: column; gap: 12px; }
+        .modal-form input { padding: 10px; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 6px; outline: none; }
+        .modal-form input:focus { border-color: #555; }
+        .modal-btn { padding: 10px; background: #fff; color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; margin-top: 4px; }
+        .modal-btn:hover { background: #e0e0e0; }
+
+
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header class="header">
+        <nav class="nav-group">
+            <a href="{{ url_for('auth.profile') }}" class="nav-btn">Личный кабинет</a>
+            <a href="{{ url_for('movies.catalog') }}" class="nav-btn">Фильмы</a>
+            <a href="{{ url_for('tickets.user_tickets') }}" class="nav-btn">Билеты</a>
+        </nav>
+        <div class="cinematitle">
+            <a href="{{ url_for('main.index') }}" style="text-decoration: none; color: inherit;"><h1>PSKOVGU CINEMA</h1></a>
+        </div>
+        <nav class="nav-group">
+            {% if current_user_name %}
+                <span class="nav-btn" style="cursor: default; color: #aaa;">{{ current_user_name }}</span>
+            {% else %}
+                <a href="#" onclick="openModal('loginModal')" class="nav-btn">Вход</a>
+                <a href="#" onclick="openModal('registerModal')" class="nav-btn">Регистрация</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    {% block content %}{% endblock %}
+
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal">
+            <button class="modal-close" onclick="closeModals()">×</button>
+            <h2>Вход</h2>
+            <form action="{{ url_for('auth.login') }}" method="POST" class="modal-form">
+                <input type="email" name="email" placeholder="Электронная почта" required>
+                <input type="password" name="password" placeholder="Пароль" required>
+                <button type="submit" class="modal-btn">Войти</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal-overlay">
+        <div class="modal">
+            <button class="modal-close" onclick="closeModals()">×</button>
+            <h2>Регистрация</h2>
+            <form action="{{ url_for('auth.register') }}" method="POST" class="modal-form">
+                <input type="text" name="last_name" placeholder="Фамилия" required>
+                <input type="text" name="first_name" placeholder="Имя" required>
+                <input type="text" name="patronymic" placeholder="Отчество (необязательно)">
+                <input type="email" name="email" placeholder="Электронная почта" required>
+                <input type="password" name="password" placeholder="Пароль (мин. 6 символов)" required>
+                <button type="submit" class="modal-btn">Зарегистрироваться</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none'); }
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', e => { if (e.target === overlay) closeModals(); });
+        });
+    </script>
+</body>
+</html>
