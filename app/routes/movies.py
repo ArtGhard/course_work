@@ -6,6 +6,10 @@ from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, abort, jsonify, session, flash, redirect, url_for
 from app.models import Movie, Session, Seat, Ticket, Genre
 from app import db
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 movies_bp = Blueprint('movies', __name__)
 
@@ -137,7 +141,7 @@ def book_ticket():
         return jsonify({'error': 'Ошибка при бронировании'}), 500
 
 # ----Айпишник сети вместо localhost для теста qr кода-----
-    local_ip = IPV4
+    local_ip = os.getenv('IPV4')
     verify_url = f"http://{local_ip}:5000/tickets/verify/{unique_code}"
     
     qr = qrcode.make(verify_url)
