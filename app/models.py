@@ -1,6 +1,16 @@
 from app import db
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import Table, Column, Integer, ForeignKey
+
+
+# Таблица-связка для связи many-to-many между фильмами и жанрами
+movie_genres = Table(
+    'movie_genres',
+    db.metadata,
+    Column('movie_id', Integer, ForeignKey('movies.id'), primary_key=True),
+    Column('genre_id', Integer, ForeignKey('genres.id'), primary_key=True)
+)
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -32,10 +42,10 @@ class Movie(db.Model):
     description = db.Column(db.Text, nullable=False)
     director = db.Column(db.String(150), nullable=False)
     age_rating = db.Column(db.String(10), nullable=False)
-    genre = db.Column(db.String(150), nullable=False)
     poster_path = db.Column(db.String(255))
     duration_minutes = db.Column(db.Integer, nullable=False, default=0)
 
+    genres = db.relationship('Genre', secondary=movie_genres, backref='movies', lazy='joined')
     sessions = db.relationship('Session', backref='movie', lazy=True)
 
 
@@ -63,6 +73,11 @@ class Session(db.Model):
     start_time = db.Column(db.Time, nullable=False)
     price = db.Column(db.Numeric(10, 2), nullable=False)
 
+class Genre(db.Model):
+    __tablename__ = 'genres'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+
 class Ticket(db.Model):
     __tablename__ = 'tickets'
     id = db.Column(db.Integer, primary_key=True)
@@ -75,6 +90,6 @@ class Ticket(db.Model):
 
     session = db.relationship('Session', backref='tickets')
     seat = db.relationship('Seat', backref='tickets')
-    
+
     def __repr__(self):
         return f'<Movie {self.title}>'

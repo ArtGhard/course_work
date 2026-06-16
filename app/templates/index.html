@@ -4,6 +4,17 @@
 
 {% block extra_css %}
 <style>
+    body {
+        background-color: #050505; /* Цвет-подстраховка, если картинка не загрузится */
+        /* Градиент поверх картинки для затемнения (0.7 = 70% темноты), чтобы текст читался */
+        background-image: url('{{ url_for("static", filename="images/another/background.webp") }}');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed; /* Фон стоит на месте при прокрутке (параллакс-эффект) */
+        z-index: 100;
+    }
+    
     .main-content {
         flex: 1;
         display: flex;

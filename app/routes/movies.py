@@ -4,7 +4,7 @@ import uuid
 import qrcode
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, abort, jsonify, session, flash, redirect, url_for
-from app.models import Movie, Session, Seat, Ticket
+from app.models import Movie, Session, Seat, Ticket, Genre
 from app import db
 
 movies_bp = Blueprint('movies', __name__)
@@ -53,10 +53,10 @@ def catalog():
     query = Movie.query
 
     if selected_genre:
-        query = query.filter(Movie.genre.contains(selected_genre))
+        query = query.join(Movie.genres).filter(Genre.name == selected_genre)
 
     movies = query.order_by(Movie.id).all()
-    genres_list = ["Фантастика", "Боевик", "Криминал", "Комедия", "Драма", "Мелодрама", "Аниме", "Фэнтези", "Биография", "Триллер", "Мультфильм", "Приключения"]
+    genres_list = Genre.query.order_by(Genre.name).all()
 
     return render_template('movies.html', movies=movies, genres=genres_list, selected_genre=selected_genre)
 
@@ -137,7 +137,7 @@ def book_ticket():
         return jsonify({'error': 'Ошибка при бронировании'}), 500
 
 # ----Айпишник сети вместо localhost для теста qr кода-----
-    local_ip = "127.0.0.1" 
+    local_ip = IPV4
     verify_url = f"http://{local_ip}:5000/tickets/verify/{unique_code}"
     
     qr = qrcode.make(verify_url)

@@ -194,7 +194,14 @@
         <div class="meta-row">
             <div class="meta-item"><span class="meta-label">Режиссёр</span><span class="meta-value">{{ movie.director }}</span></div>
             <div class="meta-item"><span class="meta-label">Возрастное ограничение</span><span class="meta-value">{{ movie.age_rating }}</span></div>
-            <div class="meta-item"><span class="meta-label">Жанр</span><span class="meta-value">{{ movie.genre }}</span></div>
+            <div class="meta-item">
+                <span class="meta-label">Жанр</span>
+                <span class="meta-value">
+                    {% for g in movie.genres %}
+                        {{ g.name }}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                </span>
+            </div>
         </div>
     </div>
     <div class="detail-right">

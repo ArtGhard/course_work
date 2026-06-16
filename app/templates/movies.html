@@ -60,7 +60,7 @@
         <div class="filter-menu">
             <a href="{{ url_for('movies.catalog') }}" class="filter-link {% if not selected_genre %}active{% endif %}">Без фильтра</a>
             {% for g in genres %}
-            <a href="{{ url_for('movies.catalog', genre=g) }}" class="filter-link {% if selected_genre == g %}active{% endif %}">{{ g }}</a>
+            <a href="{{ url_for('movies.catalog', genre=g.name) }}" class="filter-link {% if selected_genre == g %}active{% endif %}">{{ g.name }}</a>
             {% endfor %}
         </div>
     </aside>
@@ -79,7 +79,11 @@
                     <h3 class="movie-title">{{ movie.title }}</h3>
                     <div class="movie-meta">
                         <span class="age-badge">{{ movie.age_rating }}</span>
-                        <span>{{ movie.genre }}</span><br>
+                        <span>
+                            {% for g in movie.genres %}
+                                {{ g.name }}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </span><br>
                         <small>Режиссёр: {{ movie.director }}</small>
                     </div>
                 </div>
